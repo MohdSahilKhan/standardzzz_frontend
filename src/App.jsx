@@ -7,17 +7,24 @@ export default function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Default route → Login */}
-        <Route path="/" element={<Login />} />
+        {/* DEFAULT ROUTE → OPEN SIGNUP */}
+        <Route path="/" element={<Signup />} />
 
-        {/* Login Route */}
-        <Route path="/login" element={<Login />} />
-
-        {/* Signup Route */}
+        {/* SIGNUP PAGE */}
         <Route path="/signup" element={<Signup />} />
 
-        {/* Home Route */}
-        <Route path="/home" element={<h1 className="text-white text-center mt-10">Welcome Home!</h1>} />
+        {/* LOGIN PAGE */}
+        <Route path="/login" element={<Login />} />
+
+        {/* TEMP HOME PAGE */}
+        <Route
+          path="/home"
+          element={
+            <h1 className="text-white text-center mt-10 text-3xl">
+              Welcome Home!
+            </h1>
+          }
+        />
 
       </Routes>
     </BrowserRouter>
