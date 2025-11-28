@@ -5,216 +5,286 @@ export default function Login() {
   const navigate = useNavigate();
   const BASE_URL = "https://rails-api-3rfk.onrender.com";
 
-  const [loginType, setLoginType] = useState("mobile"); // mobile | email
+  const pageBg = "#E1D0B3";
+  const cardBg = "#703B3B";
+  const textLight = "#FFF4E0";
+  const textDark = "#3B1F1F";
+  const accent = "#E1D0B3";
 
+  const [loginType, setLoginType] = useState("mobile");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // --------------------------
-  // SEND OTP (MOBILE OR EMAIL)
-  // --------------------------
+  const [timer, setTimer] = useState(0);
+  const [resendEnabled, setResendEnabled] = useState(false);
+
+  const startTimer = () => {
+    setTimer(120);
+    setResendEnabled(false);
+
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setResendEnabled(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // SEND OTP
   const handleSendOtp = async () => {
     setError("");
+    setLoading(true);
 
     let url = "";
     let body = {};
 
     if (loginType === "mobile") {
       if (mobile.length !== 10) {
-        setError("Enter a valid 10-digit mobile number");
+        setError("Enter valid 10-digit mobile number");
+        setLoading(false);
         return;
       }
+
       url = `${BASE_URL}/api/login_with_mobile`;
       body = { mobile_number: Number(mobile) };
     } else {
       if (!email.includes("@")) {
-        setError("Enter a valid email");
+        setError("Enter valid email");
+        setLoading(false);
         return;
       }
+
       url = `${BASE_URL}/api/verify_email`;
       body = { email };
     }
 
     try {
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      const data = await res.json();
+      setLoading(false);
 
-      if (response.ok) {
+      if (res.ok) {
         setShowOtp(true);
+        startTimer();
       } else {
         setError(data.message || "Something went wrong.");
       }
-    } catch (err) {
-      setError("Network error. Try again.");
+    } catch {
+      setLoading(false);
+      setError("Network error");
     }
   };
 
-  // --------------------------
   // VERIFY OTP
-  // --------------------------
   const handleVerifyOtp = async () => {
-    if (otp.length < 4) {
-      setError("Enter valid OTP");
-      return;
-    }
+    if (otp.length < 4) return setError("Enter valid OTP");
 
-    setError("");
+    const url =
+      loginType === "mobile"
+        ? `${BASE_URL}/api/verify_mobile`
+        : `${BASE_URL}/api/verify_email`;
 
-    let url = "";
-    let body = {};
-
-    if (loginType === "mobile") {
-      url = `${BASE_URL}/api/verify_mobile`;
-      body = { mobile_number: Number(mobile), otp };
-    } else {
-      url = `${BASE_URL}/api/verify_email`;
-      body = { email, otp };
-    }
+    const body =
+      loginType === "mobile"
+        ? { mobile_number: Number(mobile), otp }
+        : { email, otp };
 
     try {
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
+      if (res.ok) {
+        // IMPORTANT ---- SAVE TOKEN + USERNAME ----
+        localStorage.setItem("auth", "true");
+        localStorage.setItem("authToken", data.token);   // ⭐ VERY IMPORTANT
+        localStorage.setItem("username", data.user.full_name);
+
         navigate("/home");
       } else {
         setError(data.message || "Invalid OTP");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex justify-center items-center px-6">
-      <div className="w-full max-w-xl p-12 rounded-3xl shadow-xl border border-[#d4af37]/30 bg-white relative">
-
-        {/* Already Signup? */}
-        <p
-          onClick={() => navigate("/signup")}
-          className="absolute bottom-4 left-6 text-sm text-gray-600 hover:text-[#d4af37] cursor-pointer"
+    <div
+      className="min-h-screen flex justify-center items-center px-6"
+      style={{ backgroundColor: pageBg }}
+    >
+      <div
+        className="w-full max-w-xl p-12 rounded-3xl shadow-2xl relative"
+        style={{
+          backgroundColor: cardBg,
+          border: `2px solid ${textDark}`,
+        }}
+      >
+        <h1
+          className="text-4xl font-bold text-center mb-3 tracking-wide"
+          style={{ color: textLight }}
         >
-          New user? Create account
-        </p>
-
-        <h1 className="text-4xl font-bold text-center mb-3 tracking-wide text-gray-900">
-          STANDARD<span className="text-[#d4af37]">ZZZ</span>
+          STANDARD<span style={{ color: accent }}>ZZZ</span>
         </h1>
 
-        <p className="text-center text-gray-500 mb-10 font-medium">
+        <p
+          className="text-center mb-10"
+          style={{ color: "#EEDCC3" }}
+        >
           Login to continue
         </p>
 
-        {/* Toggle Login Type */}
+        {/* SWITCH BUTTONS */}
         <div className="flex justify-center gap-6 mb-8">
-          <button
-            onClick={() => { setLoginType("mobile"); setShowOtp(false); }}
-            className={`pb-1 border-b-2 text-lg font-medium ${
-              loginType === "mobile" ? "border-[#d4af37] text-[#d4af37]" : "border-transparent text-gray-500"
-            }`}
-          >
-            Mobile Login
-          </button>
-
-          <button
-            onClick={() => { setLoginType("email"); setShowOtp(false); }}
-            className={`pb-1 border-b-2 text-lg font-medium ${
-              loginType === "email" ? "border-[#d4af37] text-[#d4af37]" : "border-transparent text-gray-500"
-            }`}
-          >
-            Email Login
-          </button>
+          {["mobile", "email"].map((type) => (
+            <button
+              key={type}
+              onClick={() => {
+                setLoginType(type);
+                setShowOtp(false);
+              }}
+              className="pb-1 text-lg font-medium border-b-2"
+              style={{
+                borderColor: loginType === type ? accent : "transparent",
+                color: loginType === type ? accent : textLight,
+              }}
+            >
+              {type === "mobile" ? "Mobile Login" : "Email Login"}
+            </button>
+          ))}
         </div>
 
-        {/* ---------------------- FIELD AREA ---------------------- */}
-
+        {/* MOBILE LOGIN */}
         {loginType === "mobile" && (
           <>
-            <label className="text-gray-700 font-medium">Mobile Number</label>
+            <label style={{ color: textLight }}>Mobile Number</label>
             <div className="flex items-center gap-3 mt-2 mb-6">
               <input
                 type="number"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 placeholder="10-digit mobile number"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 
-                focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40 transition outline-none"
+                className="w-full px-4 py-3 rounded-xl border outline-none"
+                style={{
+                  borderColor: accent,
+                  backgroundColor: pageBg,
+                  color: textDark,
+                }}
               />
-
               <button
                 onClick={handleSendOtp}
-                className="text-[#d4af37] font-semibold hover:text-[#c19d2f] text-sm"
+                disabled={loading}
+                style={{ color: accent }}
               >
-                Send OTP
+                {loading ? "Sending..." : "Send OTP"}
               </button>
             </div>
           </>
         )}
 
+        {/* EMAIL LOGIN */}
         {loginType === "email" && (
           <>
-            <label className="text-gray-700 font-medium">Email Address</label>
+            <label style={{ color: textLight }}>Email Address</label>
             <div className="flex items-center gap-3 mt-2 mb-6">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email address"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 
-                focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40 transition outline-none"
+                placeholder="Your email"
+                className="w-full px-4 py-3 rounded-xl border outline-none"
+                style={{
+                  borderColor: accent,
+                  backgroundColor: pageBg,
+                  color: textDark,
+                }}
               />
-
               <button
                 onClick={handleSendOtp}
-                className="text-[#d4af37] font-semibold hover:text-[#c19d2f] text-sm"
+                disabled={loading}
+                style={{ color: accent }}
               >
-                Send OTP
+                {loading ? "Sending..." : "Send OTP"}
               </button>
             </div>
           </>
         )}
 
-        {/* OTP FIELD */}
+        {/* OTP */}
         {showOtp && (
-          <div className="animate-fadeIn">
-            <label className="text-gray-700 font-medium">Enter OTP</label>
+          <div>
+            <label style={{ color: textLight }}>Enter OTP</label>
             <input
               type="number"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               placeholder="6-digit OTP"
-              className="w-full mt-2 mb-6 px-4 py-3 rounded-xl border border-gray-300 
-              focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/40 transition outline-none"
+              className="w-full mt-2 mb-3 px-4 py-3 rounded-xl border outline-none"
+              style={{
+                borderColor: accent,
+                backgroundColor: pageBg,
+                color: textDark,
+              }}
             />
+
+            {!resendEnabled ? (
+              <p className="text-sm mb-4" style={{ color: accent }}>
+                Resend OTP in <b>{timer}s</b>
+              </p>
+            ) : (
+              <button
+                onClick={handleResendOtp}
+                className="text-sm mb-4"
+                style={{ color: accent }}
+              >
+                Resend OTP
+              </button>
+            )}
 
             <button
               onClick={handleVerifyOtp}
-              className="w-full py-3 bg-[#d4af37] hover:bg-[#c19d2f] text-white font-semibold 
-              rounded-xl transition shadow-md"
+              className="w-full py-3 rounded-xl shadow-md font-semibold"
+              style={{
+                backgroundColor: accent,
+                color: textDark,
+              }}
             >
               Verify & Login
             </button>
           </div>
         )}
 
-        {/* ERROR MESSAGE */}
         {error && (
-          <p className="text-red-500 text-center text-sm mt-4">{error}</p>
+          <p className="text-center text-sm mt-4" style={{ color: "#ffb3b3" }}>
+            {error}
+          </p>
         )}
+
+        <p
+          onClick={() => navigate("/signup")}
+          className="absolute bottom-4 left-6 text-sm cursor-pointer"
+          style={{ color: accent }}
+        >
+          New user? Create account
+        </p>
       </div>
     </div>
   );
