@@ -6,7 +6,7 @@ import App from "./App.jsx";
 import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import Home from "./pages/Home.jsx";
-import Cart from "./pages/Cart.jsx"; // NEW
+import Cart from "./pages/Cart.jsx";
 
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
@@ -17,7 +17,6 @@ import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {/* CartProvider wraps everything */}
     <CartProvider>
       <BrowserRouter>
         <Routes>
@@ -27,7 +26,7 @@ createRoot(document.getElementById("root")).render(
             path="/"
             element={
               <PublicRoute>
-                <App />
+                <Signup />
               </PublicRoute>
             }
           />
